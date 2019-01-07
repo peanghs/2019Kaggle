@@ -49,8 +49,10 @@ for record in train_db:
         Par = record[7]
         Par = float(Par)
         Fare = record[9]
-        if float(Fare) is ValueError:
-            Fare = 0
+        if Fare == '':
+            Fare = 0.0
+        elif float(Fare) is ValueError:
+            Fare = 0.0
         Fare = float(Fare)
         Destination = record[11]
         if Destination == '':
@@ -106,8 +108,10 @@ for record in test_db:
         Par = record[6]
         Par = float(Par)
         Fare = record[8]
-        if float(Fare) is ValueError:
-            Fare = 0
+        if Fare == '':
+            Fare = 0.0
+        elif float(Fare) is ValueError:
+            Fare = 0.0
         Fare = float(Fare)
         Destination = record[10]
         if Destination == '':
