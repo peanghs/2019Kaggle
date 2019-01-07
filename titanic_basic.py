@@ -1,5 +1,6 @@
 import tensorflow as tf
 import csv
+import numpy as np
 
 ''' 
 0 PassengerId - type should be integers
@@ -15,6 +16,14 @@ import csv
 10 Cabin
 11 Embarked - The port in which a passenger has embarked. C - Cherbourg, S - Southampton, Q = Queenstown
 '''
+
+
+#  스케일러
+def scale(data):
+    numerator = data - np.min(data, 0)
+    denominator = np.max(data, 0) - np.min(data, 0)
+    return numerator / (denominator + 1e-7)
+
 
 #  전처리 - 학습 자료 처리
 train_db = csv.reader(open('train.csv', 'r', encoding='utf-8'), delimiter=',')
@@ -64,13 +73,14 @@ for record in train_db:
         elif Destination == 'S':
             Destination = 2
         Destination = float(Destination)
-        train_array_info = [ID, PClass, Sex, Age, Sib, Par, Fare, Destination]
+        train_array_info = [PClass, Sex, Age, Sib, Par, Fare, Destination]
+        train_array_info = scale(train_array_info)
         label_array_info = [Survived]
         train_set.append(train_array_info)
         train_label.append(label_array_info)
 
-print('-----Train Set-----')
-print(train_set)
+# print('-----Train Set-----')
+# print(train_set)
 print('-----Train Label-----')
 print(train_label)
 print('학습 자료 길이:', '%d' % (len(train_set)))
@@ -123,7 +133,8 @@ for record in test_db:
         elif Destination == 'S':
             Destination = 2
         Destination = float(Destination)
-        test_array_info = [ID, PClass, Sex, Age, Sib, Par, Fare, Destination]
+        test_array_info = [PClass, Sex, Age, Sib, Par, Fare, Destination]
+        test_array_info = scale(test_array_info)
         test_set.append(test_array_info)
 
 for record in test_label_db:
@@ -132,27 +143,27 @@ for record in test_label_db:
         test_label_array_info = [Survived]
         test_label.append(test_label_array_info)
 
-print('-----Test Set-----')
-print(test_set)
+# print('-----Test Set-----')
+# print(test_set)
 print('-----Test Label-----')
 print(test_label)
 print('실험 자료 길이:', '%d' % (len(test_set)))
 
-X = tf.placeholder(tf.float32, [None, 8])
+X = tf.placeholder(tf.float32, [None, 7])
 Y = tf.placeholder(tf.float32, [None, 1])
 b = tf.Variable(tf.random_normal([1]))
 
-W1 = tf.Variable(tf.random_normal([8, 6], stddev=0.01))
+W1 = tf.Variable(tf.random_normal([7, 5], stddev=0.01))
 L1 = tf.nn.relu(tf.matmul(X, W1) + b)
 
-W2 = tf.Variable(tf.random_normal([6, 4], stddev=0.01))
+W2 = tf.Variable(tf.random_normal([5, 3], stddev=0.01))
 L2 = tf.nn.relu(tf.matmul(L1, W2) + b)
 
-W3 = tf.Variable(tf.random_normal([4, 1], stddev=0.01))
+W3 = tf.Variable(tf.random_normal([3, 1], stddev=0.01))
 model = tf.matmul(L2, W3) + b
 
 cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=model, labels=Y))
-optimizer = tf.train.AdamOptimizer(0.1).minimize(cost)
+optimizer = tf.train.AdamOptimizer(0.001).minimize(cost)
 
 init = tf.global_variables_initializer()
 sess = tf.Session()
