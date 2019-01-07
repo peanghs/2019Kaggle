@@ -49,11 +49,9 @@ for record in train_db:
         Par = record[7]
         Par = float(Par)
         Fare = record[9]
-        if Fare.isdigit():
-            Fare = float(Fare)
-        else:
+        if float(Fare) is ValueError:
             Fare = 0
-            Fare = float(Fare)
+        Fare = float(Fare)
         Destination = record[11]
         if Destination == '':
             Destination = 0
@@ -107,12 +105,10 @@ for record in test_db:
         Sib = float(Sib)
         Par = record[6]
         Par = float(Par)
-        Fare = record[7]
-        if Fare.isdigit():
-            Fare = float(Fare)
-        else:
+        Fare = record[8]
+        if float(Fare) is ValueError:
             Fare = 0
-            Fare = float(Fare)
+        Fare = float(Fare)
         Destination = record[10]
         if Destination == '':
             Destination = 0
@@ -140,18 +136,19 @@ print('실험 자료 길이:', '%d' % (len(test_set)))
 
 X = tf.placeholder(tf.float32, [None, 8])
 Y = tf.placeholder(tf.float32, [None, 1])
+b = tf.Variable(tf.random_normal([1]))
 
 W1 = tf.Variable(tf.random_normal([8, 6], stddev=0.01))
-L1 = tf.nn.relu(tf.matmul(X, W1))
+L1 = tf.nn.relu(tf.matmul(X, W1) + b)
 
 W2 = tf.Variable(tf.random_normal([6, 4], stddev=0.01))
-L2 = tf.nn.relu(tf.matmul(L1, W2))
+L2 = tf.nn.relu(tf.matmul(L1, W2) + b)
 
 W3 = tf.Variable(tf.random_normal([4, 1], stddev=0.01))
-model = tf.matmul(L2, W3)
+model = tf.matmul(L2, W3) + b
 
 cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=model, labels=Y))
-optimizer = tf.train.AdamOptimizer(0.001).minimize(cost)
+optimizer = tf.train.AdamOptimizer(0.1).minimize(cost)
 
 init = tf.global_variables_initializer()
 sess = tf.Session()
@@ -165,6 +162,8 @@ for epoch in range(15):
     total_cost = 0
 
     for i in range(total_batch):
+        # x_batch, y_batch = sess.run([train_set, train_label])
+        # _, cost_val = sess.run([optimizer, cost], feed_dict={X: x_batch, Y: y_batch})
         _, cost_val = sess.run([optimizer, cost], feed_dict={X: train_set, Y: train_label})
         total_cost += cost_val
 
