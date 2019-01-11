@@ -1,6 +1,7 @@
 import tensorflow as tf
 import csv
 import numpy as np
+from sklearn.preprocessing import MinMaxScaler
 
 ''' 
 0 PassengerId - type should be integers
@@ -18,11 +19,11 @@ import numpy as np
 '''
 
 
-#  스케일러
-def scale(data):
-    numerator = data - np.min(data, 0)
-    denominator = np.max(data, 0) - np.min(data, 0)
-    return numerator / (denominator + 1e-7)
+# #  스케일러
+# def scale(data):
+#     numerator = data - np.min(data, 0)
+#     denominator = np.max(data, 0) - np.min(data, 0)
+#     return numerator / (denominator + 1e-7)
 
 
 #  전처리 - 학습 자료 처리
@@ -74,13 +75,17 @@ for record in train_db:
             Destination = 2
         Destination = float(Destination)
         train_array_info = [PClass, Sex, Age, Sib, Par, Fare, Destination]
-        train_array_info = scale(train_array_info)
         label_array_info = [Survived]
         train_set.append(train_array_info)
         train_label.append(label_array_info)
 
-# print('-----Train Set-----')
-# print(train_set)
+# #  학습 자료 라벨 원핫 처리
+# train_label = tf.one_hot(train_label, depth=2).eval()
+# train_label = tf.reshape(train_label, shape=[-1, 2]).eval()
+train_set = np.array(train_set)
+train_set = MinMaxScaler().fit_transform(train_set)
+print('-----Train Set-----')
+print(train_set)
 print('-----Train Label-----')
 print(train_label)
 print('학습 자료 길이:', '%d' % (len(train_set)))
@@ -134,7 +139,7 @@ for record in test_db:
             Destination = 2
         Destination = float(Destination)
         test_array_info = [PClass, Sex, Age, Sib, Par, Fare, Destination]
-        test_array_info = scale(test_array_info)
+        # test_array_info = scale(test_array_info)
         test_set.append(test_array_info)
 
 for record in test_label_db:
@@ -143,27 +148,34 @@ for record in test_label_db:
         test_label_array_info = [Survived]
         test_label.append(test_label_array_info)
 
-# print('-----Test Set-----')
-# print(test_set)
+test_set = np.array(test_set)
+test_set = MinMaxScaler().fit_transform(test_set)
+print('-----Test Set-----')
+print(test_set)
 print('-----Test Label-----')
 print(test_label)
 print('실험 자료 길이:', '%d' % (len(test_set)))
 
 X = tf.placeholder(tf.float32, [None, 7])
 Y = tf.placeholder(tf.float32, [None, 1])
-b = tf.Variable(tf.random_normal([1]))
+b1 = tf.Variable(tf.random_normal([1]))
+b2 = tf.Variable(tf.random_normal([1]))
+b3 = tf.Variable(tf.random_normal([1]))
 
 W1 = tf.Variable(tf.random_normal([7, 5], stddev=0.01))
-L1 = tf.nn.relu(tf.matmul(X, W1) + b)
+L1 = tf.nn.relu(tf.matmul(X, W1) + b1)
 
 W2 = tf.Variable(tf.random_normal([5, 3], stddev=0.01))
-L2 = tf.nn.relu(tf.matmul(L1, W2) + b)
+L2 = tf.nn.relu(tf.matmul(L1, W2) + b2)
 
 W3 = tf.Variable(tf.random_normal([3, 1], stddev=0.01))
-model = tf.matmul(L2, W3) + b
+model = tf.matmul(L2, W3) + b3
 
 cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=model, labels=Y))
 optimizer = tf.train.AdamOptimizer(0.001).minimize(cost)
+
+is_correct = tf.equal(tf.argmax(model, 1), tf.argmax(Y, 1))
+accuracy = tf.reduce_mean(tf.cast(is_correct, tf.float32))
 
 init = tf.global_variables_initializer()
 sess = tf.Session()
@@ -182,11 +194,7 @@ for epoch in range(15):
         _, cost_val = sess.run([optimizer, cost], feed_dict={X: train_set, Y: train_label})
         total_cost += cost_val
 
-    print('Epoch:', '%d' % (epoch + 1),
-          'Avg. cost =', '{:.3f}'.format(total_cost / total_batch))
+    print('Epoch:', '%d' % (epoch + 1), 'Avg. cost =', '{:.3f}'.format(total_cost / total_batch))
 
 print('최적화 완료!')
-
-is_correct = tf.equal(tf.argmax(model, 1), tf.argmax(Y, 1))
-accuracy = tf.reduce_mean(tf.cast(is_correct, tf.float32))
 print('정확도:', sess.run(accuracy, feed_dict={X: test_set, Y: test_label}))
